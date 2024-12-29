@@ -1,5 +1,5 @@
 from pathlib import Path
-from tkinter import Tk, Canvas, Entry, Button, PhotoImage, Label, Frame, ttk
+from tkinter import Tk, Canvas, Entry, Button, PhotoImage, Label, Frame, ttk, Text
 import Process
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
@@ -158,67 +158,188 @@ button_3 = Button(
 button_3.place(x=360.0, y=370.0, width=180.0, height=30.0)
 #-------------------------------------------------------------------------
 
-monthly_spending = [150, 200, 50, 180, 220, 160, 300, 250, 130, 110, 180, 200]  # Spending for Jan-Dec
+def show_top_up_form():
+    # Create the top-up form frame
+    top_up_frame = Frame(home_frame, bg="#D7DEC8", width=300, height=150)
+    top_up_frame.place(x=400, y=20)  # Position the form on the screen
 
-# Sample current balance
-current_balance = 1000  # Example balance
+    # Label for amount to top up
+    amount_label = Label(top_up_frame, text="Amount to top up:", bg="#D7DEC8", font=("Inter", 12))
+    amount_label.pack(pady=10)
+
+    # Entry field to input the top-up amount
+    amount_entry = Entry(top_up_frame, font=("Inter", 12))
+    amount_entry.pack(pady=5)
+
+    # Function to handle the confirm button click
+    def confirm_top_up():
+        amount = amount_entry.get()
+        if amount.isdigit() and float(amount) > 0:
+            print(f"Top up confirmed with {amount}£")
+            top_up_frame.destroy()  # Close the top-up form
+        else:
+            print("Please enter a valid amount")
+
+    # Confirm button
+    confirm_button = Button(
+        top_up_frame,
+        text="Confirm",
+        bg="#B85042",
+        fg="white",
+        font=("Inter", 12),
+        relief="flat",
+        command=confirm_top_up
+    )
+    confirm_button.pack(pady=10)
 
 
-# Home Frame setup (for bar chart, buttons, and transactions)
-home_frame = Frame(window, bg="#E7E8D1", padx=20, pady=20)
-home_frame.pack(fill="both", expand=True)  # Make the frame fill the window
+home_frame = Frame(window, bg="#D7DEC8")
+home_frame.pack(fill="both", expand=True)
 
-# Show the current balance
-balance_label = Label(home_frame, text=f"Current Balance: ${current_balance}", font=("Arial", 14), bg="#E7E8D1", fg="#B85042", anchor="w")
-balance_label.pack(pady=5, padx=15, fill="x")
+canvas = Canvas(
+    home_frame,
+    bg="#D7DEC8",
+    height=600,
+    width=900,
+    bd=0,
+    highlightthickness=0,
+    relief="ridge"
+)
+canvas.place(x=0, y=0)
 
-# Show the 'Top Up' button
-top_up_button = Button(home_frame, text="Top Up", command=lambda: print("Top Up clicked"), bg="#B85042", fg="white", font=("Arial", 12), relief="flat")
-top_up_button.pack(pady=5, padx=15, fill="x")
+# "Your current balance is" label
+canvas.create_text(
+    125.0,
+    11.0,
+    anchor="nw",
+    text="Your current balance is :",
+    fill="#000000",
+    font=("Inter", 20 * -1)
+)
 
-# Show the 'Send Money' button
-send_money_button = Button(home_frame, text="Send Money", command=lambda: print("Send Money clicked"), bg="#B85042", fg="white", font=("Arial", 12), relief="flat")
-send_money_button.pack(pady=5, padx=15, fill="x")
+# Display balance
+canvas.create_text(
+    180.0,
+    41.0,
+    anchor="nw",
+    text="300.000£",
+    fill="#000000",
+    font=("Inter", 36 * -1)
+)
 
-# Show the bar chart (smaller)
-fig, ax = plt.subplots(figsize=(6, 3))  # Smaller figure size (6x3)
-ax.bar(
-    ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-    monthly_spending,
-    color=["blue", "green", "red", "orange", "purple", "yellow", "brown", "cyan", "magenta", "gray", "pink", "violet"]
-)  # Bar chart with all months
-ax.set_ylabel("Amount ($)")  # Y-axis label
-ax.set_title("Monthly Spending")  # Title
 
-# Embed the bar chart in the Tkinter window using FigureCanvasTkAgg
-canvas = FigureCanvasTkAgg(fig, master=home_frame)  # Create canvas for the figure
-canvas.draw()  # Render the plot
+# "Top up" and "Send" buttons
+canvas.create_rectangle(
+    176.0,
+    107.0,
+    254.0,
+    138.0,
+    fill="#B85042",
+    outline=""
+)
+canvas.create_rectangle(
+    265.0,
+    107.0,
+    344.0,
+    138.0,
+    fill="#B85042",
+    outline=""
+)
 
-# Place the canvas widget with specific size control
-canvas_widget = canvas.get_tk_widget()
-canvas_widget.pack(pady=15, padx=15, fill="x", expand=False)  # Slightly smaller padding, centered
+# "Top up" and "Send" buttons
+Button(
+    home_frame,
+    text="Top up",
+    bg="#B85042",
+    fg="#E7E8D1",
+    font=("Inter", 12),
+    relief="flat",
+    command=show_top_up_form  # Show the top-up form when clicked
+).place(x=176.0, y=107.0, width=78.0, height=31.0)
 
-# Show the list of transactions (placeholder for now)
-transactions = [
-    "Transaction 1: -$50",
-    "Transaction 2: -$100",
-    "Transaction 3: -$30"
-]  # Example transactions
+Button(
+    home_frame,
+    text="Send",
+    bg="#B85042",
+    fg="#E7E8D1",
+    font=("Inter", 12),
+    relief="flat",
+    command=lambda: print("Send button clicked")
+).place(x=265.0, y=107.0, width=79.0, height=31.0)
 
-transaction_frame = Frame(home_frame, bg="#E7E8D1")
-transaction_frame.pack(pady=15, padx=15, fill="x", expand=True)
+# Left Sidebar - Home, Profile, Cards, Loans, etc.
+sidebar_frame = Frame(home_frame, bg="#B85042", width=90, height=600)
+sidebar_frame.place(x=0, y=0)
 
-for trans in transactions:
-    trans_label = Label(transaction_frame, text=trans, bg="#E7E8D1", fg="black", font=("Arial", 11))
-    trans_label.pack(pady=3, anchor="w")
+actions = [print("home_action"), print("home_action"), print("home_action"), print("home_action"), print("home_action"), print("home_action")]
+menu_texts = ["Home", "Profile", "Send", "Cards", "Loans", "Log out"]
+y_positions = [19, 93, 167, 241, 315, 533]
 
-# Optional scrollbar for more transactions
-scrollbar_button = Button(transaction_frame, text="Scroll for more", bg="#B85042", fg="white", font=("Arial", 10), relief="flat")
-scrollbar_button.pack(pady=10)
+for i, text in enumerate(menu_texts):
+    Button(
+        sidebar_frame,
+        text=text,
+        bg="#B85042",
+        fg="#E7E8D1",
+        font=("Inter", 14),
+        relief="flat",
+        command=actions[i]
+    ).place(x=0, y=y_positions[i], width=90, height=40)
 
-# Add a logout button at the bottom
-logout_button = Button(home_frame, text="Log Out", command=lambda: window.quit(), bg="#B85042", fg="white", font=("Arial", 12), relief="flat")
-logout_button.pack(pady=15, fill="x")
+# "NoteBank" text at the top
+canvas.create_text(
+    750.0,
+    33.0,
+    anchor="nw",
+    text="NoteBank",
+    fill="#B85042",
+    font=("Inter SemiBold", 24 * -1)
+)
+
+# Right Side - Help Text Area
+canvas.create_rectangle(
+    700.0,
+    97.0,
+    900.0,
+    600.0,
+    fill="#B85042",
+    outline=""
+)
+
+canvas.create_text(
+    718.0,
+    109.0,
+    anchor="nw",
+    text="Send a request for any\nhelp or questions to\nour staff",
+    fill="#FFFFFF",
+    font=("Inter SemiBold", 16 * -1)
+)
+
+# Textbox for request input
+request_input = Text(
+    home_frame,
+    bd=0,
+    bg="#FFFFFF",
+    fg="#000716",
+    wrap="word",         # Automatically wrap text at word boundaries
+    font=("Inter", 12)   # Adjust font size if needed
+)
+request_input.place(x=725.0, y=189.0, width=155.0, height=307.0)
+
+# Insert placeholder text (optional)
+request_input.insert("1.0", "")  # Start text from the top-left
+
+# Submit Button for request
+submit_button = Button(
+    home_frame,
+    text="Submit",
+    command=lambda: print(request_input.get()),
+    bg="#B85042",
+    fg="white",
+    font=("Inter", 12),
+    relief="flat"
+)
+submit_button.place(x=725.0, y=530.0, width=155.0, height=40.0)
 
 """
 # Home Frame
