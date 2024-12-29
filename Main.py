@@ -1,6 +1,8 @@
 from pathlib import Path
 from tkinter import Tk, Canvas, Entry, Button, PhotoImage, Label, Frame, ttk
 import Process
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import matplotlib.pyplot as plt
 
 OUTPUT_PATH = Path(__file__).parent
 ASSETS_PATH = OUTPUT_PATH / Path(r"C:\Users\Admin\Desktop\AdData\NoteBank\assets\frame0")
@@ -8,8 +10,9 @@ ASSETS_PATH = OUTPUT_PATH / Path(r"C:\Users\Admin\Desktop\AdData\NoteBank\assets
 def relative_to_assets(path: str) -> Path:
     return ASSETS_PATH / Path(path)
 
+
 def validation(entry1, entry2):
-    """Validate user credentials and switch to the home page if correct."""
+    #Validate user credentials and switch to the home page if correct
     log = Process.signin(entry1, entry2)
     print(f"Log: {log}")
     if log[0] == True and log[1] == False:
@@ -30,10 +33,22 @@ def account_creation_validation(firstname, lastname, dob, email, address, work,
         error_label1.config(text="Please type correctly the data and select a valid branch\n"
                                 "First Name, Last Name, Branch, Email, and Password are required!", fg="red")
 
+def switch_to_login_page():
+    #Switch back to the login page
+    error_label.config(text="", fg="red")
+    error_label0.config(text="", fg="red")
+    home_frame.pack_forget()
+    create_account_frame.forget()
+    forgot_password_frame.forget()
+    entry_1.delete(0, 'end')
+    entry_2.delete(0, 'end')
+    login_frame.pack(fill="both", expand=True)
+    login_frame.place(relx=0.5, rely=0.5, anchor="center", width=600, height=500)
+
 
 def forgot_password_validation(firstname, lastname, password, email, address, work, combobox):
     loge = Process.reset_password(firstname, lastname, password, email, address, work, combobox)
-    if loge[0] == True and loge[1] == False:
+    if loge[0]  and not loge[1]:
         error_label.config(text="", fg="red")
         switch_to_login_page()
     elif not loge[0] and loge[1] == True:
@@ -44,23 +59,16 @@ def forgot_password_validation(firstname, lastname, password, email, address, wo
         error_label.config(text="Your verification credentials do not match \n the one of the account", fg="red")
 
 def switch_to_home_page():
-    """Switch to the home page."""
+    #Switch to the home page
     login_frame.pack_forget()
     create_account_frame.forget()
     home_frame.pack(fill="both", expand=True)
 
-def switch_to_login_page():
-    """Switch back to the login page."""
-    home_frame.pack_forget()
-    create_account_frame.forget()
-    #forgot_password_frame.forget()
-    entry_1.delete(0, 'end')
-    entry_2.delete(0, 'end')
-    login_frame.pack(fill="both", expand=True)
-    login_frame.place(relx=0.5, rely=0.5, anchor="center", width=600, height=500)
+
+
 
 def switch_to_create_account_page():
-    """Switch to the create account page."""
+    #Switch to the create account page
     login_frame.pack_forget()
     home_frame.pack_forget()
     entry_firstnam.delete(0, 'end')
@@ -71,6 +79,7 @@ def switch_to_create_account_page():
     entry_worktyp.delete(0, 'end')
     entry_passwor.delete(0, 'end')
     create_account_frame.pack(fill="both", expand=True)
+
 
 def switch_to_forgot_password():
       # Clear the create account fields before switching
@@ -149,6 +158,69 @@ button_3 = Button(
 button_3.place(x=360.0, y=370.0, width=180.0, height=30.0)
 #-------------------------------------------------------------------------
 
+monthly_spending = [150, 200, 50, 180, 220, 160, 300, 250, 130, 110, 180, 200]  # Spending for Jan-Dec
+
+# Sample current balance
+current_balance = 1000  # Example balance
+
+
+# Home Frame setup (for bar chart, buttons, and transactions)
+home_frame = Frame(window, bg="#E7E8D1", padx=20, pady=20)
+home_frame.pack(fill="both", expand=True)  # Make the frame fill the window
+
+# Show the current balance
+balance_label = Label(home_frame, text=f"Current Balance: ${current_balance}", font=("Arial", 14), bg="#E7E8D1", fg="#B85042", anchor="w")
+balance_label.pack(pady=5, padx=15, fill="x")
+
+# Show the 'Top Up' button
+top_up_button = Button(home_frame, text="Top Up", command=lambda: print("Top Up clicked"), bg="#B85042", fg="white", font=("Arial", 12), relief="flat")
+top_up_button.pack(pady=5, padx=15, fill="x")
+
+# Show the 'Send Money' button
+send_money_button = Button(home_frame, text="Send Money", command=lambda: print("Send Money clicked"), bg="#B85042", fg="white", font=("Arial", 12), relief="flat")
+send_money_button.pack(pady=5, padx=15, fill="x")
+
+# Show the bar chart (smaller)
+fig, ax = plt.subplots(figsize=(6, 3))  # Smaller figure size (6x3)
+ax.bar(
+    ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+    monthly_spending,
+    color=["blue", "green", "red", "orange", "purple", "yellow", "brown", "cyan", "magenta", "gray", "pink", "violet"]
+)  # Bar chart with all months
+ax.set_ylabel("Amount ($)")  # Y-axis label
+ax.set_title("Monthly Spending")  # Title
+
+# Embed the bar chart in the Tkinter window using FigureCanvasTkAgg
+canvas = FigureCanvasTkAgg(fig, master=home_frame)  # Create canvas for the figure
+canvas.draw()  # Render the plot
+
+# Place the canvas widget with specific size control
+canvas_widget = canvas.get_tk_widget()
+canvas_widget.pack(pady=15, padx=15, fill="x", expand=False)  # Slightly smaller padding, centered
+
+# Show the list of transactions (placeholder for now)
+transactions = [
+    "Transaction 1: -$50",
+    "Transaction 2: -$100",
+    "Transaction 3: -$30"
+]  # Example transactions
+
+transaction_frame = Frame(home_frame, bg="#E7E8D1")
+transaction_frame.pack(pady=15, padx=15, fill="x", expand=True)
+
+for trans in transactions:
+    trans_label = Label(transaction_frame, text=trans, bg="#E7E8D1", fg="black", font=("Arial", 11))
+    trans_label.pack(pady=3, anchor="w")
+
+# Optional scrollbar for more transactions
+scrollbar_button = Button(transaction_frame, text="Scroll for more", bg="#B85042", fg="white", font=("Arial", 10), relief="flat")
+scrollbar_button.pack(pady=10)
+
+# Add a logout button at the bottom
+logout_button = Button(home_frame, text="Log Out", command=lambda: window.quit(), bg="#B85042", fg="white", font=("Arial", 12), relief="flat")
+logout_button.pack(pady=15, fill="x")
+
+"""
 # Home Frame
 home_frame = Frame(window, bg="#E7E8D1")
 Label(
@@ -168,7 +240,7 @@ Button(
     font=("Inter", 12),
     relief="flat"
 ).pack(pady=20)
-
+"""
 #Now there will be the frame of the create account
 #------------------------------------------------------------------------------
 create_account_frame = Frame(window, bg="#E7E8D1")
