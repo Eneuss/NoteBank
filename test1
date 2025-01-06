@@ -118,3 +118,70 @@ BEGIN
     INSERT INTO Accounts (UserID, IBAN, OpenDate)
     VALUES (NEW.UserID, 'IBAN' || strftime('%Y%m%d%H%M%S', 'now'), DATE('now'));
 END;
+
+
+
+
+1. Branches Table:
+BranchID	BranchName	Address	City	TotalBalance
+1	Main Branch	123 Main St.	New York	1000000.00
+2	East Branch	456 East Ave.	Los Angeles	750000.00
+3	West Branch	789 West Blvd.	San Francisco	500000.00
+4	South Branch	101 South Rd.	Miami	300000.00
+5	North Branch	202 North Dr.	Chicago	450000.00
+
+2. Staff Table:
+StaffID	FirstName	LastName	Dob	Role	Salary	HireDate	BranchID	Email
+1	John	Doe	1985-05-15	Manager	55000	2015-03-01	1	john.doe@example.com
+2	Jane	Smith	1990-07-25	Cashier	35000	2018-07-01	2	jane.smith@example.com
+3	Tom	Johnson	1982-11-10	Clerk	40000	2017-02-20	3	tom.johnson@example.com
+4	Alice	Williams	1988-04-05	Manager	60000	2014-06-15	4	alice.williams@example.com
+5	Bob	Brown	1992-01-20	Cashier	37000	2019-10-15	5	bob.brown@example.com
+
+3. Users Table:
+UserID	FirstName	LastName	Dob	Email	Address	WorkType	BranchID	Password
+1	Michael	Davis	1993-08-12	michael.davis@example.com	123 Elm St.	Full-time	1	password123
+2	Sarah	Miller	1986-09-30	sarah.miller@example.com	456 Oak St.	Part-time	2	mypassword
+3	Chris	Wilson	1995-02-19	chris.wilson@example.com	789 Pine St.	Freelancer	3	securepass
+4	Laura	Taylor	1980-11-10	laura.taylor@example.com	101 Maple Rd.	Full-time	4	taylor123
+5	David	Anderson	1989-05-25	david.anderson@example.com	202 Cedar Dr.	Part-time	5	andersonpass
+
+4. Accounts Table:
+AccountID	UserID	IBAN	Balance	OpenDate	Image
+1	1	IBAN20230101010101	5000.00	2023-01-01	NULL
+2	2	IBAN20230101010201	2000.00	2023-01-02	NULL
+3	3	IBAN20230101010301	3000.00	2023-01-03	NULL
+4	4	IBAN20230101010401	1000.00	2023-01-04	NULL
+5	5	IBAN20230101010501	1500.00	2023-01-05	NULL
+
+5. Loans Table:
+LoanID	AccountID	Amount	InterestRate	StartDate	EndDate	Status
+1	1	10000.00	5.5	2023-01-01	2024-01-01	Active
+2	2	5000.00	6.0	2023-02-01	2024-02-01	Active
+3	3	15000.00	4.5	2023-03-01	2024-03-01	Active
+4	4	8000.00	5.0	2023-04-01	2024-04-01	Completed
+5	5	12000.00	5.2	2023-05-01	2024-05-01	Active
+
+6. CreditCard Table:
+CardID	AccountID	CardNumber	ExpiryDate	CVV	CreditLimit
+1	1	1234567890123456	12/25	123	5000.00
+2	2	2345678901234567	11/24	456	3000.00
+3	3	3456789012345678	10/23	789	4000.00
+4	4	4567890123456789	09/22	012	1000.00
+5	5	5678901234567890	08/23	345	2000.00
+
+7. CustomerSupport Table:
+SupportID	AccountID	StaffID	Date	Issue	Status
+1	1	1	2023-06-01	Unable to login	Resolved
+2	2	2	2023-06-05	Lost card	In Progress
+3	3	3	2023-06-10	Incorrect charge	Resolved
+4	4	4	2023-06-12	Account locked	In Progress
+5	5	5	2023-06-15	Transaction error	Resolved
+
+8. Transactions Table:
+TransactionID	AccountID	Amount	Recipient	Description	Date
+1	1	500.00	John Doe	Payment for services	2023-06-01
+2	2	150.00	Jane Smith	Refund for transaction	2023-06-02
+3	3	300.00	Tom Johnson	Purchase of office supplies	2023-06-03
+4	4	120.00	Alice Williams	Repayment of loan	2023-06-04
+5	5	250.00	Bob Brown	Transfer to savings	2023-06-05
