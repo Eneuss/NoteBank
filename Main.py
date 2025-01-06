@@ -1,5 +1,5 @@
 from pathlib import Path
-from tkinter import Tk, Canvas, Entry, Button, PhotoImage, Label, Frame, ttk, Text
+from tkinter import Tk, Canvas, Entry, Button, PhotoImage, Label, Frame, ttk, Text, filedialog
 import Process
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
@@ -10,17 +10,20 @@ ASSETS_PATH = OUTPUT_PATH / Path(r"C:\Users\Admin\Desktop\AdData\NoteBank\assets
 def relative_to_assets(path: str) -> Path:
     return ASSETS_PATH / Path(path)
 
+current_user = 0
 
 def validation(entry1, entry2):
     #Validate user credentials and switch to the home page if correct
     log = Process.signin(entry1, entry2)
-    print(f"Log: {log}")
-    if log[0] == True and log[1] == False:
+    if log[0]:
+        global current_user
+        current_user = log[1]
         switch_to_home_page()
-    elif log[0] == True and log[1] == True:
-        switch_to_home_page() #if both are true it's a staff account
+
     elif not log[0]:
         error_label0.config(text="Invalid email or password", fg="red")
+
+
 
 def account_creation_validation(firstname, lastname, dob, email, address, work,
                    branch, password):
@@ -33,11 +36,22 @@ def account_creation_validation(firstname, lastname, dob, email, address, work,
         error_label1.config(text="Please type correctly the data and select a valid branch\n"
                                 "First Name, Last Name, Branch, Email, and Password are required!", fg="red")
 
+
+def update_account_validation(user, firstname, lastname, dob, email, address, work, combobox, password):
+    log = Process.update_account(user, firstname, lastname, dob, email, address, work, combobox, password)
+    if log:
+        switch_to_home_page()
+    else:
+        error_label4.config(text="The branch dose not exist", fg="red")
+
+
 def switch_to_login_page():
     #Switch back to the login page
     error_label.config(text="", fg="red")
     error_label0.config(text="", fg="red")
     home_frame.pack_forget()
+    profile_frame.pack_forget()
+    send_frame.pack_forget()
     create_account_frame.forget()
     forgot_password_frame.forget()
     entry_1.delete(0, 'end')
@@ -58,12 +72,65 @@ def forgot_password_validation(firstname, lastname, password, email, address, wo
     elif loge[0] == True and loge[1] == True:
         error_label.config(text="Your verification credentials do not match \n the one of the account", fg="red")
 
+
+
+def handle_upload():
+    file_path = filedialog.askopenfilename(
+        title="Select a File",
+        filetypes=[("Image Files", "*.jpg;*.jpeg;*.png;*.gif"), ("All Files", "*.*")]
+    )
+    Process.upload_file(file_path, current_user)
+
+# File download logic
+def handle_download():
+    file_data = Process.download_file(current_user)
+    if file_data:
+        save_path = filedialog.asksaveasfilename(
+            title="Save File",
+            defaultextension=".jpg",
+            filetypes=[("Image Files", "*.jpg;*.jpeg;*.png;*.gif"), ("All Files", "*.*")]
+        )
+        if save_path:
+            with open(save_path, 'wb') as file:
+                file.write(file_data)
+            print(f"File saved to: {save_path}")
+        else:
+            print("Save operation canceled.")
+    else:
+        print("No file to save.")
+
+
+
+def send_validation(current_user, recipient, amount, description, date):
+
+    log = Process.transaction(current_user, recipient, amount, description, date)
+    if log == 1:
+        error_label5.config(text="", fg="red")
+        error_label5.config(text="Fill all the required data", fg="red")
+    elif log == 2:
+        error_label5.config(text="", fg="red")
+        error_label5.config(text="Error: Date must be in YYYY-MM-DD format and a valid date.", fg="red")
+    elif log == 3:
+        error_label5.config(text="", fg="red")
+        error_label5.config(text="Error: Amount must be a valid number.", fg="red")
+    else:
+        switch_to_send_page()
+
+def update_balance():
+    current_balance = Process.balance(current_user)  # Fetch the current balance
+    canvas.itemconfig(balance_text, text=f"{current_balance[0]}£")
+    canvas.itemconfig(iban, text=f"IBAN: {current_balance[1]}")
+
+
 def switch_to_home_page():
     #Switch to the home page
+    profile_frame.pack_forget()
+    send_frame.pack_forget()
+    update_balance()
     login_frame.pack_forget()
     create_account_frame.forget()
+    branch_combobo.set("")
     home_frame.pack(fill="both", expand=True)
-
 
 
 
@@ -82,9 +149,70 @@ def switch_to_create_account_page():
 
 
 def switch_to_forgot_password():
-      # Clear the create account fields before switching
+    # Clear the create account fields before switching
     login_frame.pack_forget()
     forgot_password_frame.pack(fill="both", expand=True)
+
+
+def switch_to_profile_page():
+    home_frame.pack_forget()
+    send_frame.pack_forget()
+    entry_firstnam.delete(0, 'end')
+    entry_lastnam.delete(0, 'end')
+    entry_do.delete(0, 'end')
+    entry_emai.delete(0, 'end')
+    entry_addres.delete(0, 'end')
+    entry_worktyp.delete(0, 'end')
+    entry_passwor.delete(0, 'end')
+    profile_frame.pack(fill="both", expand=True)
+
+
+def switch_to_send_page():
+    home_frame.pack_forget()
+    profile_frame.pack_forget()
+    entry_recipient.delete(0, 'end')
+    entry_amount.delete(0, 'end')
+    entry_description.delete(0, 'end')
+    entry_date.delete(0, 'end')
+    error_label5.config(text="", fg="red")
+    send_frame.pack(fill="both", expand=True)
+
+def show_top_up_form():
+    # Create the top-up form frame
+    top_up_frame = Frame(home_frame, bg="#D7DEC8", width=300, height=150)
+    top_up_frame.place(x=400, y=20)  # Position the form on the screen
+
+    # Label for amount to top up
+    amount_label = Label(top_up_frame, text="Amount to top up:", bg="#D7DEC8", font=("Inter", 12))
+    amount_label.pack(pady=10)
+
+    # Entry field to input the top-up amount
+    quantity = Entry(top_up_frame, font=("Inter", 12))
+    quantity.pack(pady=5)
+
+    # Function to handle the confirm button click
+    def confirm_top_up():
+        amount = quantity.get()
+        if amount.isdigit() and float(amount) > 0:
+            Process.top_up(amount, current_user)
+            top_up_frame.destroy()  # Close the top-up form
+            switch_to_home_page()
+
+
+    # Confirm button
+    confirm_button = Button(
+        top_up_frame,
+        text="Confirm",
+        bg="#B85042",
+        fg="white",
+        font=("Inter", 12),
+        relief="flat",
+        command=confirm_top_up
+    )
+    confirm_button.pack(pady=10)
+
+
+
 
 # Main window
 window = Tk()
@@ -158,43 +286,9 @@ button_3 = Button(
 button_3.place(x=360.0, y=370.0, width=180.0, height=30.0)
 #-------------------------------------------------------------------------
 
-def show_top_up_form():
-    # Create the top-up form frame
-    top_up_frame = Frame(home_frame, bg="#D7DEC8", width=300, height=150)
-    top_up_frame.place(x=400, y=20)  # Position the form on the screen
-
-    # Label for amount to top up
-    amount_label = Label(top_up_frame, text="Amount to top up:", bg="#D7DEC8", font=("Inter", 12))
-    amount_label.pack(pady=10)
-
-    # Entry field to input the top-up amount
-    amount_entry = Entry(top_up_frame, font=("Inter", 12))
-    amount_entry.pack(pady=5)
-
-    # Function to handle the confirm button click
-    def confirm_top_up():
-        amount = amount_entry.get()
-        if amount.isdigit() and float(amount) > 0:
-            print(f"Top up confirmed with {amount}£")
-            top_up_frame.destroy()  # Close the top-up form
-        else:
-            print("Please enter a valid amount")
-
-    # Confirm button
-    confirm_button = Button(
-        top_up_frame,
-        text="Confirm",
-        bg="#B85042",
-        fg="white",
-        font=("Inter", 12),
-        relief="flat",
-        command=confirm_top_up
-    )
-    confirm_button.pack(pady=10)
-
-
 home_frame = Frame(window, bg="#D7DEC8")
 home_frame.pack(fill="both", expand=True)
+home_frame.pack_forget()
 
 canvas = Canvas(
     home_frame,
@@ -218,15 +312,23 @@ canvas.create_text(
 )
 
 # Display balance
-canvas.create_text(
+balance_text = canvas.create_text(
     180.0,
     41.0,
     anchor="nw",
-    text="300.000£",
+    text="Loading error",
     fill="#000000",
     font=("Inter", 36 * -1)
 )
 
+iban = canvas.create_text(
+    125.0,
+    160.0,
+    anchor="nw",
+    text="Iban",
+    fill="#000000",
+    font=("Inter", 20 * -1)
+)
 
 # "Top up" and "Send" buttons
 canvas.create_rectangle(
@@ -264,27 +366,72 @@ Button(
     fg="#E7E8D1",
     font=("Inter", 12),
     relief="flat",
-    command=lambda: print("Send button clicked")
+    command=lambda: switch_to_send_page()
 ).place(x=265.0, y=107.0, width=79.0, height=31.0)
 
 # Left Sidebar - Home, Profile, Cards, Loans, etc.
 sidebar_frame = Frame(home_frame, bg="#B85042", width=90, height=600)
 sidebar_frame.place(x=0, y=0)
 
-actions = [print("home_action"), print("home_action"), print("home_action"), print("home_action"), print("home_action"), print("home_action")]
-menu_texts = ["Home", "Profile", "Send", "Cards", "Loans", "Log out"]
-y_positions = [19, 93, 167, 241, 315, 533]
-
-for i, text in enumerate(menu_texts):
-    Button(
+Button(
         sidebar_frame,
-        text=text,
+        text="Home",
         bg="#B85042",
         fg="#E7E8D1",
         font=("Inter", 14),
         relief="flat",
-        command=actions[i]
-    ).place(x=0, y=y_positions[i], width=90, height=40)
+        command=lambda:switch_to_home_page()
+    ).place(x=0, y=19, width=90, height=40)
+
+Button(
+        sidebar_frame,
+        text="Profile",
+        bg="#B85042",
+        fg="#E7E8D1",
+        font=("Inter", 14),
+        relief="flat",
+        command=lambda:switch_to_profile_page()
+    ).place(x=0, y=93, width=90, height=40)
+
+Button(
+        sidebar_frame,
+        text="Send",
+        bg="#B85042",
+        fg="#E7E8D1",
+        font=("Inter", 14),
+        relief="flat",
+        command=lambda:switch_to_send_page()
+    ).place(x=0, y=167, width=90, height=40)
+
+Button(
+        sidebar_frame,
+        text="Cards",
+        bg="#B85042",
+        fg="#E7E8D1",
+        font=("Inter", 14),
+        relief="flat",
+        command=lambda:switch_to_home_page()
+    ).place(x=0, y=241, width=90, height=40)
+
+Button(
+        sidebar_frame,
+        text="Loans",
+        bg="#B85042",
+        fg="#E7E8D1",
+        font=("Inter", 14),
+        relief="flat",
+        command=lambda:switch_to_home_page()
+    ).place(x=0, y=315, width=90, height=40)
+
+Button(
+        sidebar_frame,
+        text="Log out",
+        bg="#B85042",
+        fg="#E7E8D1",
+        font=("Inter", 14),
+        relief="flat",
+        command=lambda:switch_to_login_page()
+    ).place(x=0, y=533, width=90, height=40)
 
 # "NoteBank" text at the top
 canvas.create_text(
@@ -326,7 +473,7 @@ request_input = Text(
 )
 request_input.place(x=725.0, y=189.0, width=155.0, height=307.0)
 
-# Insert placeholder text (optional)
+
 request_input.insert("1.0", "")  # Start text from the top-left
 
 # Submit Button for request
@@ -341,29 +488,11 @@ submit_button = Button(
 )
 submit_button.place(x=725.0, y=530.0, width=155.0, height=40.0)
 
-"""
-# Home Frame
-home_frame = Frame(window, bg="#E7E8D1")
-Label(
-    home_frame,
-    text="Welcome to the Home Page!",
-    bg="#E7E8D1",
-    fg="#B85042",
-    font=("Inter SemiBold", 24)
-).pack(pady=50)
 
-Button(
-    home_frame,
-    text="Log Out",
-    command=switch_to_login_page,
-    bg="#B85042",
-    fg="white",
-    font=("Inter", 12),
-    relief="flat"
-).pack(pady=20)
-"""
+
 #Now there will be the frame of the create account
 #------------------------------------------------------------------------------
+
 create_account_frame = Frame(window, bg="#E7E8D1")
 
 canvas_create = Canvas(
@@ -416,6 +545,7 @@ canvas_create.create_text(600.0, 280.0, anchor="nw", text="Password", fill="#000
 entry_passwor = Entry(create_account_frame, bd=0, bg="#FFFFFF", fg="#000716", highlightthickness=0, show="*")
 entry_passwor.place(x=700.0, y=280.0, width=160.0, height=33.0)
 
+
 error_label1 = Label(create_account_frame, text="", bg="#E7E8D1", fg="red", font=("Inter", 10))
 error_label1.place(x=250, y=400)
 
@@ -428,7 +558,7 @@ submit_button = Button(
     font=("Inter", 12),
     relief="flat"
 )
-submit_button.place(x=370.0, y=350.0, width=210.0, height=40.0)
+submit_button.place(x=370.0, y=400.0, width=210.0, height=40.0)
 
 
 #---------------------------------------------------------------------------------------------
@@ -501,6 +631,323 @@ submit_button = Button(
     relief="flat"
 )
 submit_button.place(x=350.0, y=450.0, width=210.0, height=40.0)
+#--------------------------------------------
+# Profile Frame
+profile_frame = Frame(window, bg="#D7DEC8")
+profile_frame.pack(fill="both", expand=True)
+profile_frame.pack_forget()
+
+# Sidebar (Left Side)
+sidebar_frame_profile = Frame(profile_frame, bg="#B85042", width=90, height=600)
+sidebar_frame_profile.place(x=0, y=0)
+
+Button(
+    sidebar_frame_profile,
+    text="Home",
+    bg="#B85042",
+    fg="#E7E8D1",
+    font=("Inter", 14),
+    relief="flat",
+    command=lambda: switch_to_home_page()
+).place(x=0, y=19, width=90, height=40)
+
+Button(
+    sidebar_frame_profile,
+    text="Profile",
+    bg="#B85042",
+    fg="#E7E8D1",
+    font=("Inter", 14),
+    relief="flat",
+    command=lambda: switch_to_profile_page()
+).place(x=0, y=93, width=90, height=40)
+
+Button(
+    sidebar_frame_profile,
+    text="Send",
+    bg="#B85042",
+    fg="#E7E8D1",
+    font=("Inter", 14),
+    relief="flat",
+    command=lambda: switch_to_send_page()
+).place(x=0, y=167, width=90, height=40)
+
+Button(
+    sidebar_frame_profile,
+    text="Cards",
+    bg="#B85042",
+    fg="#E7E8D1",
+    font=("Inter", 14),
+    relief="flat",
+    command=lambda: print("Cards button clicked")
+).place(x=0, y=241, width=90, height=40)
+
+Button(
+    sidebar_frame_profile,
+    text="Loans",
+    bg="#B85042",
+    fg="#E7E8D1",
+    font=("Inter", 14),
+    relief="flat",
+    command=lambda: print("Loans button clicked")
+).place(x=0, y=315, width=90, height=40)
+
+Button(
+    sidebar_frame_profile,
+    text="Log out",
+    bg="#B85042",
+    fg="#E7E8D1",
+    font=("Inter", 14),
+    relief="flat",
+    command=lambda: switch_to_login_page()
+).place(x=0, y=533, width=90, height=40)
+
+# Form Section (Right Side)
+form_frame = Frame(profile_frame, bg="#E7E8D1", width=810, height=600)
+form_frame.place(x=90, y=0)
+
+canvas_form = Canvas(
+    form_frame,
+    bg="#E7E8D1",
+    height=600,
+    width=810,
+    bd=0,
+    highlightthickness=0,
+    relief="ridge"
+)
+canvas_form.place(x=0, y=0)
+
+canvas_form.create_text(250.0, 35.0, anchor="nw", text="Edit Account Details", fill="#B85042", font=("Inter SemiBold", 24))
+
+# Left Column Inputs
+canvas_form.create_text(70.0, 100.0, anchor="nw", text="First Name", fill="#000000", font=("Inter", 12 * -1))
+entry_firstnam = Entry(form_frame, bd=0, bg="#FFFFFF", fg="#000716", highlightthickness=0)
+entry_firstnam.place(x=160.0, y=100.0, width=210.0, height=33.0)
+
+canvas_form.create_text(70.0, 160.0, anchor="nw", text="Last Name", fill="#000000", font=("Inter", 12 * -1))
+entry_lastnam = Entry(form_frame, bd=0, bg="#FFFFFF", fg="#000716", highlightthickness=0)
+entry_lastnam.place(x=160.0, y=160.0, width=210.0, height=33.0)
+
+canvas_form.create_text(70.0, 220.0, anchor="nw", text="Date of Birth", fill="#000000", font=("Inter", 12 * -1))
+entry_do = Entry(form_frame, bd=0, bg="#FFFFFF", fg="#000716", highlightthickness=0)
+entry_do.place(x=160.0, y=220.0, width=210.0, height=33.0)
+
+canvas_form.create_text(70.0, 280.0, anchor="nw", text="Email", fill="#000000", font=("Inter", 12 * -1))
+entry_emai = Entry(form_frame, bd=0, bg="#FFFFFF", fg="#000716", highlightthickness=0)
+entry_emai.place(x=160.0, y=280.0, width=210.0, height=33.0)
+
+# Right Column Inputs
+canvas_form.create_text(500.0, 100.0, anchor="nw", text="Address", fill="#000000", font=("Inter", 12 * -1))
+entry_addres = Entry(form_frame, bd=0, bg="#FFFFFF", fg="#000716", highlightthickness=0)
+entry_addres.place(x=600.0, y=100.0, width=160.0, height=33.0)
+
+canvas_form.create_text(500.0, 160.0, anchor="nw", text="Work Type", fill="#000000", font=("Inter", 12 * -1))
+entry_worktyp = Entry(form_frame, bd=0, bg="#FFFFFF", fg="#000716", highlightthickness=0)
+entry_worktyp.place(x=600.0, y=160.0, width=160.0, height=33.0)
+
+canvas_form.create_text(500.0, 220.0, anchor="nw", text="Branch", fill="#000000", font=("Inter", 12 * -1))
+branches = Process.load_branches()
+branch_combobo = ttk.Combobox(form_frame, values=branches)
+branch_combobo.place(x=600.0, y=220.0, width=160.0, height=33.0)
+
+canvas_form.create_text(500.0, 280.0, anchor="nw", text="Password", fill="#000000", font=("Inter", 12 * -1))
+entry_passwor = Entry(form_frame, bd=0, bg="#FFFFFF", fg="#000716", highlightthickness=0, show="*")
+entry_passwor.place(x=600.0, y=280.0, width=160.0, height=33.0)
+
+# Error Label
+error_label4 = Label(form_frame, text="", bg="#E7E8D1", fg="red", font=("Inter", 10))
+error_label4.place(x=250, y=450)
+
+
+canvas_form.create_text(70.0, 350.0, anchor="nw", text="Insert an image\nof you for\nidentification", fill="#000000", font=("Inter", 12 * -1))
+# Add upload and download buttons in profile_frame
+upload_button = Button(
+    profile_frame,
+    text="Upload File",
+    bg="#B85042",
+    fg="#E7E8D1",
+    font=("Inter", 14),
+    relief="flat",
+    command=lambda:handle_upload()
+)
+upload_button.place(x=250, y=350, width=150, height=40)
+
+download_button = Button(
+    profile_frame,
+    text="Download File",
+    bg="#B85042",
+    fg="#E7E8D1",
+    font=("Inter", 14),
+    relief="flat",
+    command=lambda:handle_download()
+)
+download_button.place(x=410, y=350, width=150, height=40)
+
+# Submit Button
+submit_button = Button(
+    form_frame,
+    text="Save Changes",
+    command=lambda: update_account_validation(current_user, entry_firstnam, entry_lastnam, entry_do, entry_emai, entry_addres, entry_worktyp, branch_combobo, entry_passwor),
+    bg="#B85042",
+    fg="white",
+    font=("Inter", 12),
+    relief="flat"
+)
+submit_button.place(x=250.0, y=500.0, width=210.0, height=40.0)
+#----------------------------------------------------------------------------------------------
+
+# Send Frame
+send_frame = Frame(window, bg="#D7DEC8")
+send_frame.pack(fill="both", expand=True)
+send_frame.pack_forget()
+
+# Sidebar (Left Side)
+sidebar_frame_profile = Frame(send_frame, bg="#B85042", width=90, height=600)
+sidebar_frame_profile.place(x=0, y=0)
+
+Button(
+    sidebar_frame_profile,
+    text="Home",
+    bg="#B85042",
+    fg="#E7E8D1",
+    font=("Inter", 14),
+    relief="flat",
+    command=lambda: switch_to_home_page()
+).place(x=0, y=19, width=90, height=40)
+
+Button(
+    sidebar_frame_profile,
+    text="Profile",
+    bg="#B85042",
+    fg="#E7E8D1",
+    font=("Inter", 14),
+    relief="flat",
+    command=lambda: switch_to_profile_page()
+).place(x=0, y=93, width=90, height=40)
+
+Button(
+    sidebar_frame_profile,
+    text="Send",
+    bg="#B85042",
+    fg="#E7E8D1",
+    font=("Inter", 14),
+    relief="flat",
+    command=lambda: switch_to_send_page()
+).place(x=0, y=167, width=90, height=40)
+
+Button(
+    sidebar_frame_profile,
+    text="Cards",
+    bg="#B85042",
+    fg="#E7E8D1",
+    font=("Inter", 14),
+    relief="flat",
+    command=lambda: print("Cards button clicked")
+).place(x=0, y=241, width=90, height=40)
+
+Button(
+    sidebar_frame_profile,
+    text="Loans",
+    bg="#B85042",
+    fg="#E7E8D1",
+    font=("Inter", 14),
+    relief="flat",
+    command=lambda: print("Loans button clicked")
+).place(x=0, y=315, width=90, height=40)
+
+Button(
+    sidebar_frame_profile,
+    text="Log out",
+    bg="#B85042",
+    fg="#E7E8D1",
+    font=("Inter", 14),
+    relief="flat",
+    command=lambda: switch_to_login_page()
+).place(x=0, y=533, width=90, height=40)
+
+# Main Content (Right Side)
+canvas_send = Canvas(
+    send_frame,
+    bg="#D7DEC8",
+    height=600,
+    width=900,
+    bd=0,
+    highlightthickness=0,
+    relief="ridge"
+)
+canvas_send.place(x=90, y=0)
+
+canvas_send.create_text(
+    300.0,
+    20.0,
+    anchor="nw",
+    text="Send Money",
+    fill="#B85042",
+    font=("Inter SemiBold", 24)
+)
+
+# Recipient Input
+canvas_send.create_text(
+    100.0,
+    80.0,
+    anchor="nw",
+    text="Recipient",
+    fill="#000000",
+    font=("Inter", 12)
+)
+entry_recipient = Entry(send_frame, bd=0, bg="#FFFFFF", fg="#000716", highlightthickness=0)
+entry_recipient.place(x=350.0, y=80.0, width=400.0, height=30.0)
+
+# Amount Input
+canvas_send.create_text(
+    100.0,
+    140.0,
+    anchor="nw",
+    text="Amount (£)",
+    fill="#000000",
+    font=("Inter", 12)
+)
+entry_amount = Entry(send_frame, bd=0, bg="#FFFFFF", fg="#000716", highlightthickness=0)
+entry_amount.place(x=350.0, y=140.0, width=400.0, height=30.0)
+
+# Description Input (Optional)
+canvas_send.create_text(
+    100.0,
+    200.0,
+    anchor="nw",
+    text="Description (Optional)",
+    fill="#000000",
+    font=("Inter", 12)
+)
+entry_description = Entry(send_frame, bd=0, bg="#FFFFFF", fg="#000716", highlightthickness=0)
+entry_description.place(x=350.0, y=200.0, width=400.0, height=30.0)
+
+# Date Display (Auto-Generated)
+canvas_send.create_text(
+    100.0,
+    260.0,
+    anchor="nw",
+    text="Date (YYYY-MM-DD)",
+    fill="#000000",
+    font=("Inter", 12)
+)
+entry_date = Entry(send_frame, bd=0, bg="#FFFFFF", fg="#000716", highlightthickness=0)
+entry_date.place(x=350.0, y=260.0, width=200.0, height=30.0)
+
+
+# Submit Button
+submit_button = Button(
+    send_frame,
+    text="Submit",
+    bg="#B85042",
+    fg="#FFFFFF",
+    font=("Inter", 14),
+    relief="flat",
+    command=lambda: Process.transaction(entry_recipient, entry_amount, entry_description, entry_date)
+)
+submit_button.place(x=400.0, y=320.0, width=150.0, height=40.0)
+
+error_label5 = Label(send_frame, text="", bg="#E7E8D1", fg="red", font=("Inter", 10))
+error_label5.place(x=400, y=400)
 
 
 #-----------------------------------------------------------------------------------------------
