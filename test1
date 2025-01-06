@@ -2,3 +2,119 @@ https://www.figma.com/design/XuWqoYv9Edpwo4RO7HWf0e/Untitled?node-id=0-1&t=YpVsS
 
 
 figd_odE2fntWJPwr1GiyAZGTvvlArufaGNKHvHfpHaX8
+
+CREATE TABLE Branches (
+    BranchID INTEGER PRIMARY KEY AUTOINCREMENT,
+    BranchName TEXT NOT NULL,
+    Address TEXT,
+    City TEXT,
+    TotalBalance REAL
+);
+
+-- Table: Staff
+CREATE TABLE Staff (
+    StaffID INTEGER PRIMARY KEY AUTOINCREMENT,
+    FirstName TEXT NOT NULL,
+    LastName TEXT NOT NULL,
+    Dob DATE,
+    Role TEXT,
+    Salary REAL,
+    HireDate DATE,
+    BranchID INT,
+    Email TEXT,
+    FOREIGN KEY (BranchID) REFERENCES Branches(BranchID)
+);
+
+-- Table: Users
+CREATE TABLE Users (
+    UserID INTEGER PRIMARY KEY AUTOINCREMENT,
+    FirstName TEXT NOT NULL,
+    LastName TEXT NOT NULL,
+    Dob DATE,
+    Email TEXT NOT NULL,
+    Address TEXT NOT NULL,
+    WorkType TEXT NOT NULL,
+    BranchID INT,
+    Password TEXT NOT NULL,
+    FOREIGN KEY (BranchID) REFERENCES Branches(BranchID)
+);
+
+-- Table: Accounts
+CREATE TABLE Accounts (
+    AccountID INTEGER PRIMARY KEY AUTOINCREMENT,
+    UserID INT,
+    IBAN TEXT NOT NULL UNIQUE,
+    Balance REAL DEFAULT 0,
+    OpenDate DATE,
+    Image BLOB,
+    FOREIGN KEY (UserID) REFERENCES Users(UserID)
+);
+
+-- Table: Loans
+CREATE TABLE Loans (
+    LoanID INTEGER PRIMARY KEY AUTOINCREMENT,
+    AccountID INT,
+    Amount REAL NOT NULL,
+    InterestRate REAL NOT NULL,
+    StartDate DATE,
+    EndDate DATE,
+    Status TEXT,
+    FOREIGN KEY (AccountID) REFERENCES Accounts(AccountID)
+);
+
+-- Table: CreditCard
+CREATE TABLE CreditCard (
+    CardID INTEGER PRIMARY KEY AUTOINCREMENT,
+    AccountID INT,
+    CardNumber TEXT NOT NULL UNIQUE,
+    ExpiryDate TEXT NOT NULL,
+    CVV TEXT NOT NULL,
+    CreditLimit REAL,
+    FOREIGN KEY (AccountID) REFERENCES Accounts(AccountID)
+);
+
+-- Table: CustomerSupport
+CREATE TABLE CustomerSupport (
+    SupportID INTEGER PRIMARY KEY AUTOINCREMENT,
+    AccountID INT,
+    StaffID INT,
+    Date DATE,
+    Issue TEXT,
+    Status TEXT,
+    FOREIGN KEY (AccountID) REFERENCES Accounts(AccountID),
+    FOREIGN KEY (StaffID) REFERENCES Staff(StaffID)
+);
+
+-- Table: Transactions
+CREATE TABLE Transactions (
+    TransactionID INTEGER PRIMARY KEY AUTOINCREMENT,
+    AccountID INT,
+    Amount REAL NOT NULL,
+    Recipient TEXT NOT NULL,
+    Description TEXT,
+    Date DATE,
+    FOREIGN KEY (AccountID) REFERENCES Accounts(AccountID)
+);
+
+
+
+CREATE TRIGGER UpdateBranchBalance
+AFTER UPDATE ON Accounts
+FOR EACH ROW
+BEGIN
+    UPDATE Branches
+    SET TotalBalance = (SELECT SUM(Balance) FROM Accounts WHERE UserID IN 
+                        (SELECT UserID FROM Users WHERE BranchID = NEW.UserID))
+    WHERE BranchID = (SELECT BranchID FROM Users WHERE UserID = NEW.UserID);
+END;
+
+
+
+CREATE TRIGGER create_account_after_user_insert
+AFTER INSERT ON Users
+FOR EACH ROW
+BEGIN
+    -- Insert a new account associated with the newly created user
+    INSERT INTO Accounts (UserID, IBAN, OpenDate)
+    VALUES (NEW.UserID, 'IBAN' || strftime('%Y%m%d%H%M%S', 'now'), DATE('now'));
+END;
