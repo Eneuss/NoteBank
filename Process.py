@@ -3,7 +3,6 @@ import hashlib
 from datetime import datetime
 
 
-
 connection = sqlite3.connect("NoteBankSystem.db")
 cursor = connection.cursor()
 
@@ -151,7 +150,7 @@ def balance(user):
 
 def top_up(quantity,user):
     query = "UPDATE Accounts SET Balance = Balance + ? WHERE UserId = ?"
-    cursor.execute(query, (quantity, user))
+    cursor.execute(query, (float(quantity), user))
     connection.commit()
 
 
@@ -268,30 +267,54 @@ def transaction(user, entry_recipient, entry_amount, entry_description, entry_da
     date = entry_date.get()
 
     if not recipient or not amount or not date:
-        return 1
+        log = 1
+        return log
 
     # Validate date format
 
     try:
         parsed_date = datetime.strptime(date, "%Y-%m-%d").date()
     except ValueError:
-        return 2
+        log = 2
+        return log
 
     amount = float(amount)
     Balance = balance(user)
-    if amount > Balance:
-        return 3
+    if amount > float(Balance[0]):
+        print("The amount is too much ",amount)
+        log = 3
+        return log
 
-    Balance = Balance - amount
+    Balance = float(Balance[0]) - amount
+    print(f"This is the balance {Balance}")
     query = """
-            INSERT INTO Transactions (UserId, Amount, Recipient, Description, TransactionDate)
+            INSERT INTO Transactions (AccountId, Amount, Recipient, Description, Date)
             VALUES (?, ?, ?, ?, ?)
             """
     # Execute the query
     cursor.execute(query, (user, amount, recipient, description, date))
     connection.commit()
 
-    cursor.execute("UPDATE Accounts SET Balance = ? WHERE UserId = ?", ( current_user))
+    cursor.execute("UPDATE Accounts SET Balance = ? WHERE AccountId = ?", (Balance, user))
     connection.commit()
+    log = 5
+    return log
 
-    return 5
+
+
+def list_transactions():
+
+    # Get the current year
+    current_year = datetime.now().year
+    # Query to retrieve transactions of the current year
+    query = """
+        SELECT strftime('%Y-%m', Date) AS Month, SUM(Amount) AS TotalAmount
+        FROM Transactions
+        WHERE strftime('%Y', Date) = ?
+        GROUP BY strftime('%Y-%m', Date)
+        ORDER BY Month
+    """
+    cursor.execute(query, (str(current_year),))
+    transactions = cursor.fetchall()
+    print(transactions)
+    return transactions

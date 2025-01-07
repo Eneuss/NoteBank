@@ -102,24 +102,49 @@ def handle_download():
 
 
 def send_validation(current_user, recipient, amount, description, date):
-
     log = Process.transaction(current_user, recipient, amount, description, date)
     if log == 1:
-        error_label5.config(text="", fg="red")
         error_label5.config(text="Fill all the required data", fg="red")
     elif log == 2:
-        error_label5.config(text="", fg="red")
         error_label5.config(text="Error: Date must be in YYYY-MM-DD format and a valid date.", fg="red")
     elif log == 3:
-        error_label5.config(text="", fg="red")
         error_label5.config(text="Error: Amount must be a valid number.", fg="red")
     else:
         switch_to_send_page()
 
+
 def update_balance():
     current_balance = Process.balance(current_user)  # Fetch the current balance
-    canvas.itemconfig(balance_text, text=f"{current_balance[0]}£")
+    canvas.itemconfig(balance_text, text=f"{float(current_balance[0])}£")
     canvas.itemconfig(iban, text=f"IBAN: {current_balance[1]}")
+
+
+# Function to display table and plot
+def create_plot(transactions):
+    # Plotting the transactions data
+    months = [transaction[0] for transaction in transactions]
+    amounts = [transaction[1] for transaction in transactions]
+
+    # Create a smaller plot (adjusted size)
+    fig, ax = plt.subplots(figsize=(5.8, 3.8))  # Smaller figure size
+
+    ax.bar(months, amounts, color='skyblue')
+    ax.set_xlabel("Month")
+    ax.set_ylabel("Total Amount")
+    ax.set_title("Total Transactions per Month")
+
+    # Embed the plot below the Iban label (adjust the position)
+    canvas_plot = FigureCanvasTkAgg(fig, master=home_frame)
+    canvas_plot.draw()
+
+    # Position the plot on the canvas
+    canvas_plot.get_tk_widget().place(x=100, y=200)
+
+
+
+
+
+
 
 
 def switch_to_home_page():
@@ -174,7 +199,6 @@ def switch_to_send_page():
     entry_amount.delete(0, 'end')
     entry_description.delete(0, 'end')
     entry_date.delete(0, 'end')
-    error_label5.config(text="", fg="red")
     send_frame.pack(fill="both", expand=True)
 
 def show_top_up_form():
@@ -403,25 +427,6 @@ Button(
         command=lambda:switch_to_send_page()
     ).place(x=0, y=167, width=90, height=40)
 
-Button(
-        sidebar_frame,
-        text="Cards",
-        bg="#B85042",
-        fg="#E7E8D1",
-        font=("Inter", 14),
-        relief="flat",
-        command=lambda:switch_to_home_page()
-    ).place(x=0, y=241, width=90, height=40)
-
-Button(
-        sidebar_frame,
-        text="Loans",
-        bg="#B85042",
-        fg="#E7E8D1",
-        font=("Inter", 14),
-        relief="flat",
-        command=lambda:switch_to_home_page()
-    ).place(x=0, y=315, width=90, height=40)
 
 Button(
         sidebar_frame,
@@ -442,6 +447,9 @@ canvas.create_text(
     fill="#B85042",
     font=("Inter SemiBold", 24 * -1)
 )
+transaction = Process.list_transactions()
+# Call the function to display the table and plot
+create_plot(transaction)
 
 # Right Side - Help Text Area
 canvas.create_rectangle(
@@ -671,25 +679,6 @@ Button(
     command=lambda: switch_to_send_page()
 ).place(x=0, y=167, width=90, height=40)
 
-Button(
-    sidebar_frame_profile,
-    text="Cards",
-    bg="#B85042",
-    fg="#E7E8D1",
-    font=("Inter", 14),
-    relief="flat",
-    command=lambda: print("Cards button clicked")
-).place(x=0, y=241, width=90, height=40)
-
-Button(
-    sidebar_frame_profile,
-    text="Loans",
-    bg="#B85042",
-    fg="#E7E8D1",
-    font=("Inter", 14),
-    relief="flat",
-    command=lambda: print("Loans button clicked")
-).place(x=0, y=315, width=90, height=40)
 
 Button(
     sidebar_frame_profile,
@@ -834,25 +823,6 @@ Button(
     command=lambda: switch_to_send_page()
 ).place(x=0, y=167, width=90, height=40)
 
-Button(
-    sidebar_frame_profile,
-    text="Cards",
-    bg="#B85042",
-    fg="#E7E8D1",
-    font=("Inter", 14),
-    relief="flat",
-    command=lambda: print("Cards button clicked")
-).place(x=0, y=241, width=90, height=40)
-
-Button(
-    sidebar_frame_profile,
-    text="Loans",
-    bg="#B85042",
-    fg="#E7E8D1",
-    font=("Inter", 14),
-    relief="flat",
-    command=lambda: print("Loans button clicked")
-).place(x=0, y=315, width=90, height=40)
 
 Button(
     sidebar_frame_profile,
@@ -933,6 +903,9 @@ canvas_send.create_text(
 entry_date = Entry(send_frame, bd=0, bg="#FFFFFF", fg="#000716", highlightthickness=0)
 entry_date.place(x=350.0, y=260.0, width=200.0, height=30.0)
 
+error_label5 = Label(send_frame, text="", bg="#E7E8D1", fg="red", font=("Inter", 10))
+error_label5.place(x=400, y=400)
+
 
 # Submit Button
 submit_button = Button(
@@ -942,12 +915,11 @@ submit_button = Button(
     fg="#FFFFFF",
     font=("Inter", 14),
     relief="flat",
-    command=lambda: Process.transaction(entry_recipient, entry_amount, entry_description, entry_date)
+    command=lambda: send_validation(current_user, entry_recipient, entry_amount, entry_description, entry_date)
 )
 submit_button.place(x=400.0, y=320.0, width=150.0, height=40.0)
 
-error_label5 = Label(send_frame, text="", bg="#E7E8D1", fg="red", font=("Inter", 10))
-error_label5.place(x=400, y=400)
+
 
 
 #-----------------------------------------------------------------------------------------------
