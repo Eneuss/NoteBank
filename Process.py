@@ -1,52 +1,53 @@
 import sqlite3
 import hashlib
 from datetime import datetime
+import xml.etree.ElementTree as ET
 
-
-connection = sqlite3.connect("NoteBankSystem.db")
+connection = sqlite3.connect(r"Database\NoteBankSystem.db")
 cursor = connection.cursor()
 
-
-# the function is used to hash the data of the users so it is protected in case of a steal
+# Function to hash user data for security
 def hashdata(data):
-    """to provide more security since the hash it's a one way only encryption we will use a technique called
-        salt where some predefined characters are added to the string that we hash to prevent brute force attacks"""
-    data = "!£" + data
-    data_bytes = data.encode('utf-8')
-
+    """
+    Hash user data using SHA-256 with added salt for enhanced security.
+    This ensures data protection even in case of unauthorized access.
+    """
+    data = "!£" + data  # Add salt to the data
+    data_bytes = data.encode('utf-8')  # Convert data to bytes
 
     sha256 = hashlib.sha256()
-    sha256.update(data_bytes)
+    sha256.update(data_bytes)  # Hash the salted data
 
-    string_hash = sha256.hexdigest()
-
-
-    return string_hash
-
+    return sha256.hexdigest()  # Return the hexadecimal representation of the hash
 
 def signin(email_entry, password_entry):
-    """Validate user credentials."""
-    cursor.execute("SELECT UserId, Email, Password from Users")
+    """
+    Validate user credentials by comparing hashed email and password.
+    Returns a tuple where the first value indicates success and the second value is the user ID.
+    """
+    cursor.execute("SELECT UserId, Email, Password FROM Users")
     rows = cursor.fetchall()
+
     email = email_entry.get()
     password = password_entry.get()
-    if not email and not password:
+
+    if not email or not password:  # Check if fields are empty
         return [False]
 
-    email = hashdata(email)
-    password = hashdata(password)
+    email = hashdata(email)  # Hash the email
+    password = hashdata(password)  # Hash the password
 
     for row in rows:
         if row[1] == email and row[2] == password:
-            return [True,row[0]]
+            return [True, row[0]]  # Return success and user ID
 
-    return [False]
+    return [False]  # Return failure
 
-
-def create_account(entry_firstname, entry_lastname, entry_dob, entry_email, entry_address, entry_worktype,
-                   EntryBranch, entry_password):
-    """Create an account in the database."""
-    # You can add validation here as per your requirements.
+def create_account(entry_firstname, entry_lastname, entry_dob, entry_email, entry_address, entry_worktype, EntryBranch, entry_password):
+    """
+    Create a new user account in the database.
+    Validates required fields and ensures the branch exists.
+    """
     firstname = entry_firstname.get()
     lastname = entry_lastname.get()
     dob = entry_dob.get()
@@ -55,43 +56,41 @@ def create_account(entry_firstname, entry_lastname, entry_dob, entry_email, entr
     work = entry_worktype.get()
     branch = EntryBranch.get()
     password = entry_password.get()
-    # We check if the user types a branch instead of selecting one of the correct ones
-    tBranch = load_branches()
 
-    if branch not in tBranch:
+    tBranch = load_branches()  # Load available branches
+
+    if branch not in tBranch:  # Check if branch is valid
         return False
     else:
         cursor.execute("SELECT BranchID FROM Branches WHERE BranchName = ?", (branch,))
         result = cursor.fetchone()
 
-    if not (firstname and lastname and branch and email and password):
+    if not (firstname and lastname and branch and email and password):  # Check required fields
         return False
 
-    # Insert the data into the table
-    cursor.execute('''INSERT INTO Users (FirstName, LastName, DOB, Email, Address, WorkType, BranchID, Password)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
-              (hashdata(firstname), hashdata(lastname), dob, hashdata(email), hashdata(address), hashdata(work), result[0], hashdata(password)))
-
+    # Insert user data into the database
+    cursor.execute(
+        '''INSERT INTO Users (FirstName, LastName, DOB, Email, Address, WorkType, BranchID, Password)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+        (hashdata(firstname), hashdata(lastname), dob, hashdata(email), hashdata(address), hashdata(work), result[0], hashdata(password))
+    )
     connection.commit()
-
-
-
-    return True  # After account is created we return to the login page
-
+    return True  # Account creation successful
 
 def load_branches():
-    #Load available branches from the database to the combobox
-
+    """
+    Retrieve all available branches from the database.
+    Returns a list of branch names.
+    """
     cursor.execute("SELECT BranchName FROM Branches")
     branches = [row[0] for row in cursor.fetchall()]
-
     return branches
 
-
-def reset_password(entry_firstname, entry_lastname,entry_password, entry_email, entry_address,
-                   entry_work, branch_combobox):
-    #Reset password using the provided information
-    # Get the values from the entries
+def reset_password(entry_firstname, entry_lastname, entry_password, entry_email, entry_address, entry_work, branch_combobox):
+    """
+    Reset a user's password if their credentials match.
+    Validates all fields and checks for matching account details.
+    """
     firstname = entry_firstname.get()
     lastname = entry_lastname.get()
     new_password = entry_password.get()
@@ -102,82 +101,76 @@ def reset_password(entry_firstname, entry_lastname,entry_password, entry_email, 
 
     tBranch = load_branches()
     if branch not in tBranch:
-        log = [True, False]
-        return log
-    else:
-        cursor.execute("SELECT BranchID FROM Branches WHERE BranchName = ?", (branch,))
-        result = cursor.fetchone()
+        return [True, False]
+
+    cursor.execute("SELECT BranchID FROM Branches WHERE BranchName = ?", (branch,))
+    result = cursor.fetchone()
 
     cursor.execute("SELECT * FROM Users WHERE Email = ?", (hashdata(email),))
     emailCheck = cursor.fetchone()
 
-    if not emailCheck:
-        log = [False,False]
-        return log  # Email dose not exists in the database
+    if not emailCheck:  # Email does not exist
+        return [False, False]
 
-    # Validate fields (similar to Create Account)
-    if (not firstname) or (not lastname) or (not email) or (not address) or (not work) or (not result):
-        log = [False, True]
-        return log
+    # Check required fields
+    if not (firstname and lastname and email and address and work and result):
+        return [False, True]
 
-    # Check if the email exists in the database and match other details
-    cursor.execute("""
+    # Verify account details
+    cursor.execute(
+        """
         SELECT * FROM Users 
         WHERE Email = ? AND FirstName = ? AND LastName = ? AND Address = ? AND WorkType = ? AND BranchID = (
             SELECT BranchID FROM Branches WHERE BranchName = ?
         )
-    """, (hashdata(email), hashdata(firstname), hashdata(lastname), hashdata(address), hashdata(work), branch))
-
+        """,
+        (hashdata(email), hashdata(firstname), hashdata(lastname), hashdata(address), hashdata(work), branch)
+    )
     user = cursor.fetchone()
 
-    if user:
+    if user:  # Account details match
         cursor.execute("UPDATE Users SET Password = ? WHERE Email = ?", (hashdata(new_password), hashdata(email)))
         cursor.connection.commit()
-        log = [True, False]
-        return log
+        return [True, False]
     else:
-        log = [True, True]
-        return log
-
-
+        return [True, True]  # Verification failed
 
 def balance(user):
+    """
+    Retrieve the current balance and IBAN for a given user.
+    """
     cursor.execute("SELECT Balance, IBAN FROM Accounts WHERE UserID = ?", (user,))
-    emailCheck = cursor.fetchone()
+    return cursor.fetchone()
 
-    return emailCheck
-
-
-def top_up(quantity,user):
+def top_up(quantity, user):
+    """
+    Increase the balance of a user's account by the given amount.
+    """
     query = "UPDATE Accounts SET Balance = Balance + ? WHERE UserId = ?"
     cursor.execute(query, (float(quantity), user))
     connection.commit()
 
-
-
 def insert_file_and_convert_to_blob(file_path, current_user):
+    """
+    Insert a file as a BLOB into the database for a specific user.
+    """
     if file_path:
         try:
-            # Open the image file in binary mode
-            with open(file_path, 'rb') as file:
+            with open(file_path, 'rb') as file:  # Open file in binary mode
                 img_data = file.read()
-
-            # Insert the BLOB data into the database
             cursor.execute("UPDATE Accounts SET Image = ? WHERE UserId = ?", (img_data, current_user))
             connection.commit()
-
             print("File successfully converted to BLOB and inserted into the database.")
-
         except Exception as e:
             print(f"Error: {e}")
 
-
 def download_file(file_id):
-    #Handles file download
+    """
+    Download a file (BLOB) from the database for a specific user.
+    """
     try:
-        cursor.execute("SELECT image FROM Accounts WHERE UserId = ?", (file_id,))
+        cursor.execute("SELECT Image FROM Accounts WHERE UserId = ?", (file_id,))
         file_data = cursor.fetchone()
-
         if file_data:
             return file_data[0]  # Return binary data for the file
         else:
@@ -187,9 +180,10 @@ def download_file(file_id):
         print(f"Failed to download the file: {e}")
         return None
 
-
 def upload_file(file_path, user):
-    # Handles file upload
+    """
+    Handle file upload for a specific user.
+    """
     if file_path:
         try:
             insert_file_and_convert_to_blob(file_path, user)
@@ -197,9 +191,11 @@ def upload_file(file_path, user):
         except Exception as e:
             print(f"Failed to upload the file: {e}")
 
-
-def update_account(current_user, entry_firstname, entry_lastname, entry_dob, entry_email, entry_address,
-                   entry_work, branch_combobox, entry_password):
+def update_account(current_user, entry_firstname, entry_lastname, entry_dob, entry_email, entry_address, entry_work, branch_combobox, entry_password):
+    """
+    Update user account details with the provided information.
+    Validates all fields and updates only the provided ones.
+    """
     firstname = entry_firstname.get()
     lastname = entry_lastname.get()
     new_password = entry_password.get()
@@ -250,63 +246,61 @@ def update_account(current_user, entry_firstname, entry_lastname, entry_dob, ent
             updates.append("BranchID = ?")
             params.append(result)
 
-        # If there are fields to update, execute the query
-        if updates:
+        if updates:  # Execute the query if there are updates
             update_query = f"UPDATE Users SET {', '.join(updates)} WHERE UserId = ?"
             params.append(current_user)
             cursor.execute(update_query, tuple(params))
             cursor.connection.commit()
             return True
 
-
-
 def transaction(user, entry_recipient, entry_amount, entry_description, entry_date):
+    """
+    Process a transaction between two accounts.
+    Validates fields and ensures sufficient balance.
+    """
     recipient = entry_recipient.get()
     amount = entry_amount.get()
     description = entry_description.get()
     date = entry_date.get()
 
     if not recipient or not amount or not date:
-        log = 1
-        return log
-
-    # Validate date format
+        return 1  # Missing fields
 
     try:
-        parsed_date = datetime.strptime(date, "%Y-%m-%d").date()
+        parsed_date = datetime.strptime(date, "%Y-%m-%d").date()  # Validate date format
     except ValueError:
-        log = 2
-        return log
+        return 2  # Invalid date format
 
     amount = float(amount)
     Balance = balance(user)
     if amount > float(Balance[0]):
-        print("The amount is too much ",amount)
-        log = 3
-        return log
+        print("The amount is too much ", amount)
+        return 3  # Insufficient balance
 
     Balance = float(Balance[0]) - amount
     print(f"This is the balance {Balance}")
+
+    # Insert the transaction record
     query = """
-            INSERT INTO Transactions (AccountId, Amount, Recipient, Description, Date)
-            VALUES (?, ?, ?, ?, ?)
-            """
-    # Execute the query
+        INSERT INTO Transactions (AccountId, Amount, Recipient, Description, Date)
+        VALUES (?, ?, ?, ?, ?)
+        """
     cursor.execute(query, (user, amount, recipient, description, date))
     connection.commit()
 
+    # Update the account balance
     cursor.execute("UPDATE Accounts SET Balance = ? WHERE AccountId = ?", (Balance, user))
     connection.commit()
-    log = 5
-    return log
 
-
+    return 5  # Transaction successful
 
 def list_transactions():
-
-    # Get the current year
+    """
+    List all transactions for the current year, grouped by month.
+    Returns a list of months and their total transaction amounts.
+    """
     current_year = datetime.now().year
-    # Query to retrieve transactions of the current year
+
     query = """
         SELECT strftime('%Y-%m', Date) AS Month, SUM(Amount) AS TotalAmount
         FROM Transactions
@@ -316,5 +310,57 @@ def list_transactions():
     """
     cursor.execute(query, (str(current_year),))
     transactions = cursor.fetchall()
-    print(transactions)
     return transactions
+
+
+
+def export_transactions(user_id):
+    """
+    Export transactions for a user to XML format.
+    """
+    # Fetch transactions from the database
+    cursor.execute("SELECT TransactionId, Amount, Recipient, Description, Date FROM Transactions WHERE AccountId = ?", (user_id,))
+    transactions = cursor.fetchall()
+
+    # Create the root element
+    root = ET.Element("Transactions")
+
+    for transaction in transactions:
+        transaction_element = ET.SubElement(root, "Transaction")
+        ET.SubElement(transaction_element, "TransactionId").text = str(transaction[0])
+        ET.SubElement(transaction_element, "Amount").text = str(transaction[1])
+        ET.SubElement(transaction_element, "Recipient").text = transaction[2]
+        ET.SubElement(transaction_element, "Description").text = transaction[3]
+        ET.SubElement(transaction_element, "Date").text = transaction[4]
+
+    # Return the root element for further processing
+    return root
+
+def import_transactions_from_xml(file_path):
+    """
+    Import transactions from an XML file into the database.
+    """
+    try:
+        # Parse the XML file
+        tree = ET.parse(file_path)
+        root = tree.getroot()
+
+        # Iterate through transactions and insert them into the database
+        for transaction in root.findall("Transaction"):
+            transaction_id = transaction.find("TransactionId").text
+            amount = transaction.find("Amount").text
+            recipient = transaction.find("Recipient").text
+            description = transaction.find("Description").text
+            date = transaction.find("Date").text
+
+            # Insert or ignore duplicate transactions
+            cursor.execute(
+                "INSERT OR IGNORE INTO Transactions (TransactionId, Amount, Recipient, Description, Date) VALUES (?, ?, ?, ?, ?)",
+                (transaction_id, amount, recipient, description, date),
+            )
+
+        connection.commit()
+        return True  # Success
+    except Exception as e:
+        print(f"Error importing transactions: {e}")
+        return False  # Failure

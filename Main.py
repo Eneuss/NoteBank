@@ -3,50 +3,52 @@ from tkinter import Tk, Canvas, Entry, Button, PhotoImage, Label, Frame, ttk, Te
 import Process
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
+import xml.etree.ElementTree as ET
 
+# Define the assets path
 OUTPUT_PATH = Path(__file__).parent
-ASSETS_PATH = OUTPUT_PATH / Path(r"C:\Users\Admin\Desktop\AdData\NoteBank\assets\frame0")
+ASSETS_PATH = OUTPUT_PATH / "assets" / "frame0"
 
 def relative_to_assets(path: str) -> Path:
+    """Returns the path to assets."""
     return ASSETS_PATH / Path(path)
 
+# Global variable to store the current user's ID
 current_user = 0
 
 def validation(entry1, entry2):
-    #Validate user credentials and switch to the home page if correct
+    """Validate user credentials and switch to the home page if correct."""
     log = Process.signin(entry1, entry2)
     if log[0]:
         global current_user
         current_user = log[1]
         switch_to_home_page()
-
-    elif not log[0]:
+    else:
         error_label0.config(text="Invalid email or password", fg="red")
 
-
-
-def account_creation_validation(firstname, lastname, dob, email, address, work,
-                   branch, password):
-    log = Process.create_account(firstname, lastname, dob, email, address, work,
-                   branch, password)
+def account_creation_validation(firstname, lastname, dob, email, address, work, branch, password):
+    """Validate and create a new account."""
+    log = Process.create_account(firstname, lastname, dob, email, address, work, branch, password)
     if log:
         error_label1.config(text="", fg="red")
         switch_to_login_page()
     else:
-        error_label1.config(text="Please type correctly the data and select a valid branch\n"
-                                "First Name, Last Name, Branch, Email, and Password are required!", fg="red")
-
+        error_label1.config(
+            text="Please type correctly the data and select a valid branch\n"
+                 "First Name, Last Name, Branch, Email, and Password are required!",
+            fg="red"
+        )
 
 def update_account_validation(user, firstname, lastname, dob, email, address, work, combobox, password):
+    """Validate and update account details."""
     log = Process.update_account(user, firstname, lastname, dob, email, address, work, combobox, password)
     if log:
         switch_to_home_page()
     else:
-        error_label4.config(text="The branch dose not exist", fg="red")
-
+        error_label4.config(text="The branch does not exist", fg="red")
 
 def switch_to_login_page():
-    #Switch back to the login page
+    """Switch back to the login page."""
     error_label.config(text="", fg="red")
     error_label0.config(text="", fg="red")
     home_frame.pack_forget()
@@ -59,30 +61,32 @@ def switch_to_login_page():
     login_frame.pack(fill="both", expand=True)
     login_frame.place(relx=0.5, rely=0.5, anchor="center", width=600, height=500)
 
-
 def forgot_password_validation(firstname, lastname, password, email, address, work, combobox):
+    """Validate and reset the user's password."""
     loge = Process.reset_password(firstname, lastname, password, email, address, work, combobox)
-    if loge[0]  and not loge[1]:
+    if loge[0] and not loge[1]:
         error_label.config(text="", fg="red")
         switch_to_login_page()
-    elif not loge[0] and loge[1] == True:
+    elif not loge[0] and loge[1]:
         error_label.config(text="All fields are required.", fg="red")
-    elif not loge[0] and loge[1] == False:
+    elif not loge[0] and not loge[1]:
         error_label.config(text="There is no account associated with this email.", fg="red")
-    elif loge[0] == True and loge[1] == True:
-        error_label.config(text="Your verification credentials do not match \n the one of the account", fg="red")
-
-
+    else:
+        error_label.config(
+            text="Your verification credentials do not match\n the one of the account",
+            fg="red"
+        )
 
 def handle_upload():
+    """Handle file upload by the user."""
     file_path = filedialog.askopenfilename(
         title="Select a File",
         filetypes=[("Image Files", "*.jpg;*.jpeg;*.png;*.gif"), ("All Files", "*.*")]
     )
     Process.upload_file(file_path, current_user)
 
-# File download logic
 def handle_download():
+    """Handle file download by the user."""
     file_data = Process.download_file(current_user)
     if file_data:
         save_path = filedialog.asksaveasfilename(
@@ -99,9 +103,8 @@ def handle_download():
     else:
         print("No file to save.")
 
-
-
 def send_validation(current_user, recipient, amount, description, date):
+    """Validate and process a transaction."""
     log = Process.transaction(current_user, recipient, amount, description, date)
     if log == 1:
         error_label5.config(text="Fill all the required data", fg="red")
@@ -112,22 +115,19 @@ def send_validation(current_user, recipient, amount, description, date):
     else:
         switch_to_send_page()
 
-
 def update_balance():
-    current_balance = Process.balance(current_user)  # Fetch the current balance
+    """Fetch and display the current balance."""
+    current_balance = Process.balance(current_user)
     canvas.itemconfig(balance_text, text=f"{float(current_balance[0])}£")
     canvas.itemconfig(iban, text=f"IBAN: {current_balance[1]}")
 
-
-# Function to display table and plot
 def create_plot(transactions):
-    # Plotting the transactions data
+    """Create and display a plot for transactions."""
     months = [transaction[0] for transaction in transactions]
     amounts = [transaction[1] for transaction in transactions]
 
     # Create a smaller plot (adjusted size)
-    fig, ax = plt.subplots(figsize=(5.8, 3.8))  # Smaller figure size
-
+    fig, ax = plt.subplots(figsize=(5.8, 3.8))
     ax.bar(months, amounts, color='skyblue')
     ax.set_xlabel("Month")
     ax.set_ylabel("Total Amount")
@@ -136,19 +136,45 @@ def create_plot(transactions):
     # Embed the plot below the Iban label (adjust the position)
     canvas_plot = FigureCanvasTkAgg(fig, master=home_frame)
     canvas_plot.draw()
-
-    # Position the plot on the canvas
     canvas_plot.get_tk_widget().place(x=100, y=200)
 
 
+def export_transactions_to_xml():
+    """
+    Handle exporting transactions for the current user to XML.
+    """
+    root = Process.export_transactions(current_user)
 
+    # Prompt the user to save the file
+    save_path = filedialog.asksaveasfilename(
+        title="Save Transactions as XML",
+        defaultextension=".xml",
+        filetypes=[("XML Files", "*.xml")]
+    )
+    if save_path:
+        tree = ET.ElementTree(root)
+        tree.write(save_path, encoding="utf-8", xml_declaration=True)
+        print(f"Transactions exported to {save_path}")
 
-
-
+def import_transactions_from_xml():
+    """
+    Handle importing transactions from an XML file.
+    """
+    # Prompt the user to open a file
+    file_path = filedialog.askopenfilename(
+        title="Open Transactions XML File",
+        filetypes=[("XML Files", "*.xml")]
+    )
+    if file_path:
+        success = Process.import_transactions_from_xml(file_path)
+        if success:
+            print("Transactions imported successfully.")
+        else:
+            print("Failed to import transactions.")
 
 
 def switch_to_home_page():
-    #Switch to the home page
+    """Switch to the home page."""
     profile_frame.pack_forget()
     send_frame.pack_forget()
     update_balance()
@@ -157,10 +183,8 @@ def switch_to_home_page():
     branch_combobo.set("")
     home_frame.pack(fill="both", expand=True)
 
-
-
 def switch_to_create_account_page():
-    #Switch to the create account page
+    """Switch to the create account page."""
     login_frame.pack_forget()
     home_frame.pack_forget()
     entry_firstnam.delete(0, 'end')
@@ -172,14 +196,13 @@ def switch_to_create_account_page():
     entry_passwor.delete(0, 'end')
     create_account_frame.pack(fill="both", expand=True)
 
-
 def switch_to_forgot_password():
-    # Clear the create account fields before switching
+    """Clear the create account fields before switching to forgot password page."""
     login_frame.pack_forget()
     forgot_password_frame.pack(fill="both", expand=True)
 
-
 def switch_to_profile_page():
+    """Switch to the profile page."""
     home_frame.pack_forget()
     send_frame.pack_forget()
     entry_firstnam.delete(0, 'end')
@@ -191,8 +214,8 @@ def switch_to_profile_page():
     entry_passwor.delete(0, 'end')
     profile_frame.pack(fill="both", expand=True)
 
-
 def switch_to_send_page():
+    """Switch to the send money page."""
     home_frame.pack_forget()
     profile_frame.pack_forget()
     entry_recipient.delete(0, 'end')
@@ -202,7 +225,7 @@ def switch_to_send_page():
     send_frame.pack(fill="both", expand=True)
 
 def show_top_up_form():
-    # Create the top-up form frame
+    """Create the top-up form for adding funds."""
     top_up_frame = Frame(home_frame, bg="#D7DEC8", width=300, height=150)
     top_up_frame.place(x=400, y=20)  # Position the form on the screen
 
@@ -222,7 +245,6 @@ def show_top_up_form():
             top_up_frame.destroy()  # Close the top-up form
             switch_to_home_page()
 
-
     # Confirm button
     confirm_button = Button(
         top_up_frame,
@@ -234,7 +256,6 @@ def show_top_up_form():
         command=confirm_top_up
     )
     confirm_button.pack(pady=10)
-
 
 
 
@@ -488,7 +509,7 @@ request_input.insert("1.0", "")  # Start text from the top-left
 submit_button = Button(
     home_frame,
     text="Submit",
-    command=lambda: print(request_input.get()),
+    command=lambda: switch_to_home_page(),
     bg="#B85042",
     fg="white",
     font=("Inter", 12),
@@ -918,6 +939,39 @@ submit_button = Button(
     command=lambda: send_validation(current_user, entry_recipient, entry_amount, entry_description, entry_date)
 )
 submit_button.place(x=400.0, y=320.0, width=150.0, height=40.0)
+
+instructions_label = Label(
+    send_frame,
+    text="Save the list of all your transactions or import them if you need to restore your data!",
+    bg="#D7DEC8",
+    fg="#000000",
+    font=("Inter", 12),
+    wraplength=400,
+    justify="center"
+)
+instructions_label.place(x=220, y=400, width=500, height=50)
+
+export_button = Button(
+    send_frame,
+    text="Export Transactions",
+    command=export_transactions_to_xml,
+    bg="#B85042",
+    fg="white",
+    font=("Inter", 12),
+    relief="flat"
+)
+export_button.place(x=250, y=480, width=180, height=40)
+
+import_button = Button(
+    send_frame,
+    text="Import Transactions",
+    command=import_transactions_from_xml,
+    bg="#B85042",
+    fg="white",
+    font=("Inter", 12),
+    relief="flat"
+)
+import_button.place(x=500, y=480, width=180, height=40)
 
 
 
