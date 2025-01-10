@@ -317,7 +317,12 @@ def export_transactions(user_id):
     Export transactions for a user to XML format.
     """
     # Fetch transactions from the database
-    cursor.execute("SELECT TransactionId, Amount, Recipient, Description, Date FROM Transactions WHERE AccountId = ?", (user_id,))
+    cursor.execute("""
+            SELECT t.TransactionId, t.AccountId, t.Amount, t.Recipient, t.Description, t.Date
+            FROM Transactions t
+            INNER JOIN Accounts a ON t.AccountId = a.AccountID
+            WHERE a.UserID = ?
+        """, (user_id,))
     transactions = cursor.fetchall()
 
     # Create the root element
@@ -326,10 +331,11 @@ def export_transactions(user_id):
     for transaction in transactions:
         transaction_element = ET.SubElement(root, "Transaction")
         ET.SubElement(transaction_element, "TransactionId").text = str(transaction[0])
-        ET.SubElement(transaction_element, "Amount").text = str(transaction[1])
-        ET.SubElement(transaction_element, "Recipient").text = transaction[2]
-        ET.SubElement(transaction_element, "Description").text = transaction[3]
-        ET.SubElement(transaction_element, "Date").text = transaction[4]
+        ET.SubElement(transaction_element, "AccountID").text = str(transaction[1])
+        ET.SubElement(transaction_element, "Amount").text = str(transaction[2])
+        ET.SubElement(transaction_element, "Recipient").text = transaction[3]
+        ET.SubElement(transaction_element, "Description").text = transaction[4]
+        ET.SubElement(transaction_element, "Date").text = transaction[5]
 
     # Return the root element for further processing
     return root
@@ -345,16 +351,17 @@ def import_transactions_from_xml(file_path):
 
         # Iterate through transactions and insert them into the database
         for transaction in root.findall("Transaction"):
-            transaction_id = transaction.find("TransactionId").text
+            account_id = transaction.find("AccountID").text
             amount = transaction.find("Amount").text
             recipient = transaction.find("Recipient").text
             description = transaction.find("Description").text
             date = transaction.find("Date").text
 
+            print("Acc:", account_id , "AMount:", amount, "REcip: ", recipient, "Descr: ",description, "Date: ", date)
             # Insert or ignore duplicate transactions
             cursor.execute(
-                "INSERT OR IGNORE INTO Transactions (TransactionId, Amount, Recipient, Description, Date) VALUES (?, ?, ?, ?, ?)",
-                (transaction_id, amount, recipient, description, date),
+                "INSERT OR IGNORE INTO Transactions (AccountID, Amount, Recipient, Description, Date) VALUES (?, ?, ?, ?, ?)",
+                (account_id, amount, recipient, description, date),
             )
 
         connection.commit()
