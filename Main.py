@@ -113,12 +113,12 @@ def send_validation(current_user, recipient, amount, description, date):
     elif log == 3:
         error_label5.config(text="Error: Amount must be a valid number.", fg="red")
     else:
-        switch_to_send_page()
+        switch_to_home_page()
 
 def update_balance():
     """Fetch and display the current balance."""
     current_balance = Process.balance(current_user)
-    canvas.itemconfig(balance_text, text=f"{float(current_balance[0])}£")
+    canvas.itemconfig(balance_text, text=f"{current_balance[0]}£")
     canvas.itemconfig(iban, text=f"IBAN: {current_balance[1]}")
 
 def create_plot(transactions):
@@ -539,49 +539,49 @@ canvas_create.create_text(400.0, 40.0, anchor="nw", text="Create Account", fill=
 
 # Left Column Inputs
 canvas_create.create_text(100.0, 100.0, anchor="nw", text="First Name", fill="#000000", font=("Inter", 12 * -1))
-entry_firstnam = Entry(create_account_frame, bd=0, bg="#FFFFFF", fg="#000716", highlightthickness=0)
-entry_firstnam.place(x=200.0, y=100.0, width=210.0, height=33.0)
+entry_firstn = Entry(create_account_frame, bd=0, bg="#FFFFFF", fg="#000716", highlightthickness=0)
+entry_firstn.place(x=200.0, y=100.0, width=210.0, height=33.0)
 
 canvas_create.create_text(100.0, 160.0, anchor="nw", text="Last Name", fill="#000000", font=("Inter", 12 * -1))
-entry_lastnam = Entry(create_account_frame, bd=0, bg="#FFFFFF", fg="#000716", highlightthickness=0)
-entry_lastnam.place(x=200.0, y=160.0, width=210.0, height=33.0)
+entry_lastn = Entry(create_account_frame, bd=0, bg="#FFFFFF", fg="#000716", highlightthickness=0)
+entry_lastn.place(x=200.0, y=160.0, width=210.0, height=33.0)
 
 canvas_create.create_text(100.0, 220.0, anchor="nw", text="Date of Birth", fill="#000000", font=("Inter", 12 * -1))
-entry_do = Entry(create_account_frame, bd=0, bg="#FFFFFF", fg="#000716", highlightthickness=0)
-entry_do.place(x=200.0, y=220.0, width=210.0, height=33.0)
+entry_d = Entry(create_account_frame, bd=0, bg="#FFFFFF", fg="#000716", highlightthickness=0)
+entry_d.place(x=200.0, y=220.0, width=210.0, height=33.0)
 
 canvas_create.create_text(100.0, 280.0, anchor="nw", text="Email", fill="#000000", font=("Inter", 12 * -1))
-entry_emai = Entry(create_account_frame, bd=0, bg="#FFFFFF", fg="#000716", highlightthickness=0)
-entry_emai.place(x=200.0, y=280.0, width=210.0, height=33.0)
+entry_em = Entry(create_account_frame, bd=0, bg="#FFFFFF", fg="#000716", highlightthickness=0)
+entry_em.place(x=200.0, y=280.0, width=210.0, height=33.0)
 
 # Right Column Inputs (add some space to avoid being too close to the border)
 canvas_create.create_text(600.0, 100.0, anchor="nw", text="Address", fill="#000000", font=("Inter", 12 * -1))
-entry_addres = Entry(create_account_frame, bd=0, bg="#FFFFFF", fg="#000716", highlightthickness=0)
-entry_addres.place(x=700.0, y=100.0, width=160.0, height=33.0)
+entry_addr = Entry(create_account_frame, bd=0, bg="#FFFFFF", fg="#000716", highlightthickness=0)
+entry_addr.place(x=700.0, y=100.0, width=160.0, height=33.0)
 
 canvas_create.create_text(600.0, 160.0, anchor="nw", text="Work Type", fill="#000000", font=("Inter", 12 * -1))
-entry_worktyp = Entry(create_account_frame, bd=0, bg="#FFFFFF", fg="#000716", highlightthickness=0)
-entry_worktyp.place(x=700.0, y=160.0, width=160.0, height=33.0)
+entry_workt = Entry(create_account_frame, bd=0, bg="#FFFFFF", fg="#000716", highlightthickness=0)
+entry_workt.place(x=700.0, y=160.0, width=160.0, height=33.0)
 
 canvas_create.create_text(600.0, 220.0, anchor="nw", text="Branch", fill="#000000", font=("Inter", 12 * -1))
 
 # Load the branches into the combobox
 branches = Process.load_branches()
-branch_combobo = ttk.Combobox(create_account_frame, values=branches)
-branch_combobo.place(x=700.0, y=220.0, width=160.0, height=33.0)
+branch_comb = ttk.Combobox(create_account_frame, values=branches)
+branch_comb.place(x=700.0, y=220.0, width=160.0, height=33.0)
 
 canvas_create.create_text(600.0, 280.0, anchor="nw", text="Password", fill="#000000", font=("Inter", 12 * -1))
-entry_passwor = Entry(create_account_frame, bd=0, bg="#FFFFFF", fg="#000716", highlightthickness=0, show="*")
-entry_passwor.place(x=700.0, y=280.0, width=160.0, height=33.0)
+entry_passw = Entry(create_account_frame, bd=0, bg="#FFFFFF", fg="#000716", highlightthickness=0, show="*")
+entry_passw.place(x=700.0, y=280.0, width=160.0, height=33.0)
 
 
 error_label1 = Label(create_account_frame, text="", bg="#E7E8D1", fg="red", font=("Inter", 10))
-error_label1.place(x=250, y=400)
+error_label1.place(x=250, y=460)
 
 submit_button = Button(
     create_account_frame,
     text="Submit",
-    command=lambda: account_creation_validation(entry_firstnam, entry_lastnam, entry_do, entry_emai, entry_addres, entry_worktyp, branch_combobo, entry_passwor),
+    command=lambda: account_creation_validation(entry_firstn, entry_lastn, entry_d, entry_em, entry_addr, entry_workt, branch_comb, entry_passw),
     bg="#B85042",
     fg="white",
     font=("Inter", 12),

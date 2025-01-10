@@ -147,7 +147,7 @@ def top_up(quantity, user):
     Increase the balance of a user's account by the given amount.
     """
     query = "UPDATE Accounts SET Balance = Balance + ? WHERE UserId = ?"
-    cursor.execute(query, (float(quantity), user))
+    cursor.execute(query, (quantity, user))
     connection.commit()
 
 def insert_file_and_convert_to_blob(file_path, current_user):
@@ -278,8 +278,6 @@ def transaction(user, entry_recipient, entry_amount, entry_description, entry_da
         return 3  # Insufficient balance
 
     Balance = float(Balance[0]) - amount
-    print(f"This is the balance {Balance}")
-
     # Insert the transaction record
     query = """
         INSERT INTO Transactions (AccountId, Amount, Recipient, Description, Date)
@@ -289,7 +287,7 @@ def transaction(user, entry_recipient, entry_amount, entry_description, entry_da
     connection.commit()
 
     # Update the account balance
-    cursor.execute("UPDATE Accounts SET Balance = ? WHERE AccountId = ?", (Balance, user))
+    cursor.execute("UPDATE Accounts SET Balance = ? WHERE UserId = ?", (Balance, user))
     connection.commit()
 
     return 5  # Transaction successful
