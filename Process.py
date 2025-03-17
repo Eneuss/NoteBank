@@ -278,12 +278,16 @@ def transaction(user, entry_recipient, entry_amount, entry_description, entry_da
         return 3  # Insufficient balance
 
     Balance = float(Balance[0]) - amount
+
+    cursor.execute("SELECT AccountID FROM Accounts WHERE UserID = ?", (user,))
+    account_id = cursor.fetchone()
+
     # Insert the transaction record
     query = """
         INSERT INTO Transactions (AccountId, Amount, Recipient, Description, Date)
         VALUES (?, ?, ?, ?, ?)
         """
-    cursor.execute(query, (user, amount, recipient, description, date))
+    cursor.execute(query, (account_id[0], amount, recipient, description, date))
     connection.commit()
 
     # Update the account balance
@@ -292,21 +296,24 @@ def transaction(user, entry_recipient, entry_amount, entry_description, entry_da
 
     return 5  # Transaction successful
 
-def list_transactions():
+def list_transactions(user):
     """
     List all transactions for the current year, grouped by month.
     Returns a list of months and their total transaction amounts.
     """
     current_year = datetime.now().year
+    print(user)
+    cursor.execute("SELECT AccountID FROM Accounts WHERE UserID = ?", (user,))
+    account_id = cursor.fetchone()
 
     query = """
         SELECT strftime('%Y-%m', Date) AS Month, SUM(Amount) AS TotalAmount
         FROM Transactions
-        WHERE strftime('%Y', Date) = ?
+        WHERE strftime('%Y', Date) = ? AND AccountId = ?
         GROUP BY strftime('%Y-%m', Date)
         ORDER BY Month
     """
-    cursor.execute(query, (str(current_year),))
+    cursor.execute(query, (str(current_year), account_id[0]))
     transactions = cursor.fetchall()
     return transactions
 
@@ -369,3 +376,8 @@ def import_transactions_from_xml(file_path):
     except Exception as e:
         print(f"Error importing transactions: {e}")
         return False  # Failure
+
+# Function to close the connection of the database when we close the program
+def closing():
+    if connection:
+        connection.close()

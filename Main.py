@@ -16,6 +16,11 @@ def relative_to_assets(path: str) -> Path:
 # Global variable to store the current user's ID
 current_user = 0
 
+#Function to manage the closing of the page and database connection
+def closing_validation():
+    Process.closing()
+    window.destroy()
+
 def validation(entry1, entry2):
     """Validate user credentials and switch to the home page if correct."""
     log = Process.signin(entry1, entry2)
@@ -121,8 +126,10 @@ def update_balance():
     canvas.itemconfig(balance_text, text=f"{current_balance[0]}£")
     canvas.itemconfig(iban, text=f"IBAN: {current_balance[1]}")
 
-def create_plot(transactions):
+def create_plot():
     """Create and display a plot for transactions."""
+    transactions = Process.list_transactions(current_user)
+    print(transactions)
     months = [transaction[0] for transaction in transactions]
     amounts = [transaction[1] for transaction in transactions]
 
@@ -175,6 +182,8 @@ def import_transactions_from_xml():
 
 def switch_to_home_page():
     """Switch to the home page."""
+    # Call the function to display the table and plot
+    create_plot()
     profile_frame.pack_forget()
     send_frame.pack_forget()
     update_balance()
@@ -468,9 +477,7 @@ canvas.create_text(
     fill="#B85042",
     font=("Inter SemiBold", 24 * -1)
 )
-transaction = Process.list_transactions()
-# Call the function to display the table and plot
-create_plot(transaction)
+
 
 # Right Side - Help Text Area
 canvas.create_rectangle(
@@ -979,4 +986,5 @@ import_button.place(x=500, y=480, width=180, height=40)
 #-----------------------------------------------------------------------------------------------
 # Run the application
 window.resizable(False, False)
+window.protocol("WM_DELETE_WINDOW", closing_validation)
 window.mainloop()
